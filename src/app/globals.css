@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-plus-jakarta), sans-serif;
+  --font-cursive: var(--font-cursive), cursive;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-plus-jakarta), sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom GSAP drawing line animations or other utility classes */
+.line-draw {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+
+/* Circle hover transitions */
+.circle-group .circle-default-state {
+  transition: all 0.3s ease-in-out;
+  opacity: 1;
+  visibility: visible;
+}
+.circle-group:hover .circle-default-state {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.circle-group .circle-hover-state {
+  transition: all 0.5s ease-in-out;
+  opacity: 0;
+  visibility: hidden;
+}
+.circle-group:hover .circle-hover-state {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Story Card hover effects */
+.story-card {
+  transition: background-color 0.4s ease, transform 0.4s ease, box-shadow 0.4s ease;
+}
+.story-card:hover {
+  background-color: rgba(244, 244, 245, 0.7) !important; /* light gray hover bg-zinc-100 */
+}
+
+/* Thumbnail zoom */
+.story-card .story-thumbnail {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.story-card:hover .story-thumbnail {
+  transform: scale(1.08) !important;
+}
+
+/* Grayscale transition */
+.story-card .story-thumbnail-grayscale {
+  filter: grayscale(100%);
+  transition: filter 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.story-card:hover .story-thumbnail-grayscale {
+  filter: grayscale(0%) !important;
+  transform: scale(1.08) !important;
+}
+
+
+
