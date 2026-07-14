@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -9,143 +11,298 @@ if (typeof window !== "undefined") {
 }
 
 export default function GlobeSection() {
+  const router = useRouter();
   const sectionRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+  const bgTextRef = useRef<HTMLDivElement>(null);
+  const curtainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current || !sectionRef.current) return;
-
-    const GLOBE_SIZE = 520;
-    // Start width = ~88% of viewport, capped at 1100px
-    const startWidth = Math.min(window.innerWidth * 0.88, 1100);
+    if (
+      !containerRef.current ||
+      !sectionRef.current ||
+      !stickyRef.current ||
+      !bgTextRef.current ||
+      !curtainRef.current
+    )
+      return;
 
     const ctx = gsap.context(() => {
-      // --- Initial states ---
+      // Dynamic globe size based on viewport width
+      const getGlobeSize = () => {
+        if (typeof window !== "undefined") {
+          return window.innerWidth < 640 ? 320 : 540;
+        }
+        return 540;
+      };
+
+      const globeSize = getGlobeSize();
+      const MUMBAI_X = "49.8%";
+      const MUMBAI_Y = "50.8%";
+
+      // --- Set Initial States ---
       gsap.set(containerRef.current, {
-        width: startWidth,
-        height: GLOBE_SIZE,
-        borderRadius: 9999,
+        width: "100vw",
+        height: "100vh",
+        borderRadius: "0px",
+        scale: 1,
+        opacity: 1,
       });
 
-      // Map inner div is 300% wide so we can pan it across for "rotation"
       gsap.set(mapRef.current, {
-        x: 0,
+        scale: 1,
+        transformOrigin: `${MUMBAI_X} ${MUMBAI_Y}`,
       });
 
-      // --- Two-phase scrubbed timeline ---
+      gsap.set(pinRef.current, {
+        scale: 0,
+        opacity: 0,
+      });
+
+      gsap.set(stickyRef.current, {
+        backgroundColor: "#ffffff",
+      });
+
+      // Background watermark text is initially small and transparent
+      gsap.set(bgTextRef.current, {
+        opacity: 0,
+        scale: 0.8,
+      });
+
+      // Curtain sits below the viewport
+      gsap.set(curtainRef.current, {
+        y: "100%",
+      });
+
+      // --- Create Scrollytelling Timeline ---
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          // Start when section top hits viewport top, end when section bottom hits viewport bottom
           start: "top top",
           end: "bottom bottom",
           scrub: 1.5,
           pin: stickyRef.current,
           anticipatePin: 1,
+          onLeave: () => {
+            // Rises the curtain from bottom to cover screen, then route to dedicated page
+            gsap.to(curtainRef.current, {
+              y: "0%",
+              duration: 0.8,
+              ease: "power3.inOut",
+              onComplete: () => {
+                router.push("/contact");
+              },
+            });
+          },
+          onEnterBack: () => {
+            // Reset/Hide the curtain if the user scrolls back up quickly
+            gsap.to(curtainRef.current, {
+              y: "100%",
+              duration: 0.5,
+              ease: "power2.out",
+            });
+          },
         },
       });
 
-      // ── Phase 1 (0→35%): pill → circle ──
+      // Phase 1 (0 -> 0.28): Full width banner morphs to a circle (globe) & background turns light blue (#93c5fd)
       tl.to(
         containerRef.current,
         {
-          width: GLOBE_SIZE,
-          borderRadius: 9999,
+          width: globeSize,
+          height: globeSize,
+          borderRadius: "9999px",
           ease: "power2.inOut",
-          duration: 0.35, // normalized duration (35% of timeline)
+          duration: 0.28,
         },
         0
       );
 
-      // ── Phase 2 (35→100%): earth rotates 360° ──
-      // We move the inner map div left by (200% - 100%) = 100% of the container width
-      // which equates to one full world wrap = ~360° impression
+      tl.to(
+        stickyRef.current,
+        {
+          backgroundColor: "#93c5fd", // Light blue background
+          ease: "power2.inOut",
+          duration: 0.28,
+        },
+        0
+      );
+
+      tl.to(
+        textRef.current,
+        {
+          opacity: 0,
+          scale: 0.7,
+          ease: "power2.inOut",
+          duration: 0.2,
+        },
+        0
+      );
+
+      // Watermark text fades in slightly during Phase 1
+      tl.to(
+        bgTextRef.current,
+        {
+          opacity: 0.35,
+          scale: 1,
+          ease: "power2.inOut",
+          duration: 0.28,
+        },
+        0
+      );
+
+      // Phase 2 (0.28 -> 0.55): Zoom in to center on India
       tl.to(
         mapRef.current,
         {
-          x: () => -GLOBE_SIZE, // shift left by one globe width
-          ease: "none",
-          duration: 0.65,
+          scale: 4,
+          ease: "power1.inOut",
+          duration: 0.27,
         },
-        0.35 // start immediately after phase 1 ends
+        0.28
       );
 
-      // Text fades/scales up gently during rotation phase
-      tl.fromTo(
-        textRef.current,
-        { scale: 1, opacity: 0.85 },
-        { scale: 1.06, opacity: 1, ease: "none", duration: 0.65 },
-        0.35
+      // Phase 3 (0.55 -> 0.75): Zoom extremely close to Mumbai location & reveal glowing pin
+      tl.to(
+        mapRef.current,
+        {
+          scale: 14,
+          ease: "power1.in",
+          duration: 0.2,
+        },
+        0.55
+      );
+
+      tl.to(
+        pinRef.current,
+        {
+          opacity: 1,
+          scale: 1 / 14, // counter-scale to maintain constant visual size of the pin
+          ease: "power2.out",
+          duration: 0.15,
+        },
+        0.58
+      );
+
+      // Phase 4 (0.75 -> 1.0): Zoom past the globe (fade & expand)
+      tl.to(
+        containerRef.current,
+        {
+          opacity: 0,
+          scale: 2.2,
+          ease: "power2.in",
+          duration: 0.25,
+        },
+        0.75
+      );
+
+      // Watermark text scales up and becomes fully solid as the Earth fades out
+      tl.to(
+        bgTextRef.current,
+        {
+          opacity: 1,
+          scale: 1.2,
+          ease: "power2.out",
+          duration: 0.25,
+        },
+        0.75
       );
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [router]);
 
   return (
     <section
       ref={sectionRef}
-      className="relative bg-white"
-      style={{ height: "240vh" }}
+      className="relative bg-zinc-950"
+      style={{ height: "350vh" }}
     >
-      {/* Sticky viewport pinned wrapper */}
+      {/* Sticky wrapper pinning viewport */}
       <div
         ref={stickyRef}
-        className="sticky top-0 w-full flex items-center justify-center overflow-hidden"
+        className="sticky top-0 w-full flex items-center justify-center overflow-hidden transition-colors duration-300"
         style={{ height: "100vh" }}
       >
-        {/* Morphing outer container — clips everything inside via overflow:hidden */}
+        {/* Background Watermark Text behind the Earth */}
         <div
-          ref={containerRef}
-          className="relative flex-shrink-0"
+          ref={bgTextRef}
+          className="absolute z-0 flex items-center justify-center pointer-events-none select-none text-center px-4 font-black tracking-tighter uppercase"
           style={{
-            overflow: "hidden",
-            backgroundColor: "#1a2744",
+            fontFamily: "'Gondens Demo', 'League Gothic', 'Impact', 'Oswald', sans-serif",
+            fontSize: "clamp(5rem, 15vw, 18rem)",
+            color: "#14233c",
+            lineHeight: 0.9,
           }}
         >
-          {/* ── Map layer — 300% wide for rotation panning ── */}
+          Contact
+        </div>
+
+        {/* Morphing Globe Container */}
+        <div
+          ref={containerRef}
+          className="relative flex-shrink-0 z-10 border border-zinc-800/40 shadow-2xl"
+          style={{
+            overflow: "hidden",
+            backgroundColor: "#111827",
+          }}
+        >
+          {/* Map Layer */}
           <div
             ref={mapRef}
-            className="absolute inset-y-0"
+            className="absolute inset-0 w-full h-full"
             style={{
-              // Three times wider than the final globe so panning looks like rotation
-              width: "300%",
-              left: "-100%", // start showing the center portion (Eurasia/Africa)
               backgroundImage: "url('/images/world-map.png')",
               backgroundSize: "cover",
               backgroundPosition: "center center",
-              backgroundRepeat: "repeat-x",
+              backgroundRepeat: "no-repeat",
             }}
-          />
+          >
+            {/* Glowing Mumbai Pin inside map so it scales geographical position */}
+            <div
+              ref={pinRef}
+              className="absolute"
+              style={{
+                left: "49.8%",
+                top: "50.8%",
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="relative flex items-center justify-center">
+                {/* Ping rings */}
+                <span className="absolute inline-flex h-20 w-20 rounded-full bg-emerald-400/40 animate-ping" />
+                <span className="absolute inline-flex h-28 w-28 rounded-full bg-emerald-500/20 animate-pulse" />
+                {/* Center dot */}
+                <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 border-2 border-white shadow-lg shadow-emerald-500/50">
+                  <span className="block h-3 w-3 rounded-full bg-white animate-pulse" />
+                </span>
+              </div>
+            </div>
+          </div>
 
-          {/* Radial vignette for sphere depth */}
+          {/* Spherical shadow overlay for 3D depth */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(10,18,50,0.65) 100%)",
+                "radial-gradient(circle at 35% 35%, transparent 30%, rgba(0, 0, 0, 0.7) 100%)",
             }}
           />
 
-          {/* "Voices Unsilenced" label */}
+          {/* Heading overlay shown at the beginning */}
           <div
             ref={textRef}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            className="absolute inset-0 flex items-center justify-center pointer-events-none p-6"
           >
             <span
+              className="font-cursive text-white tracking-wide select-none drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)] leading-tight text-center"
               style={{
-                fontFamily: "var(--font-dancing), cursive",
-                fontSize: "clamp(2.6rem, 5.5vw, 4.8rem)",
-                fontWeight: 700,
-                color: "#b5d5a2",
-                letterSpacing: "0.01em",
-                lineHeight: 1,
-                textShadow: "0 2px 20px rgba(0,0,0,0.45)",
-                userSelect: "none",
-                whiteSpace: "nowrap",
+                fontSize: "clamp(2.5rem, 6vw, 5rem)",
+                color: "#e2f1db",
               }}
             >
               Voices Unsilenced
@@ -153,6 +310,13 @@ export default function GlobeSection() {
           </div>
         </div>
       </div>
+
+      {/* Solid Curtain Overlay sliding up from the bottom */}
+      <div
+        ref={curtainRef}
+        className="fixed inset-0 w-full h-full bg-[#14233c] z-50 pointer-events-none"
+        style={{ transform: "translateY(100%)" }}
+      />
     </section>
   );
 }

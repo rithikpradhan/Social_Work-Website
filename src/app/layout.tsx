@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Mr_De_Haviland, Dancing_Script } from "next/font/google";
+import SmoothScrolling from "@/components/SmoothScrolling";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -35,7 +36,9 @@ export default function RootLayout({
       lang="en"
       className={`${plusJakarta.variable} ${mrDeHaviland.variable} ${dancingScript.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-zinc-950 text-white font-sans">{children}</body>
+      <body className="min-h-full bg-zinc-950 text-white font-sans">
+        <SmoothScrolling>{children}</SmoothScrolling>
+      </body>
     </html>
   );
 }
